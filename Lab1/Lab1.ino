@@ -9,19 +9,20 @@
 #define SOLENOID_2_PIN 13
 
 // [Program]
-int D_BETWEEN_RUN     = 100;  // Delay between run loops
-int N_RUNS            = 1;
+int D_BETWEEN_RUN     = 4000;  // Delay between run loops
+int N_RUNS            = 4;
 
 // [Solenoid]
 int D_BEFORE_DROP     = 200;  // Camera opens
-int D_VALVE_OPEN      = 500;  // Valve open time
-int D_BETWEEN_DROP    = 30;   // Duration between drops
+int D_VALVE_OPEN      = 300;  // Valve open time
+int D_BETWEEN_DROP    = 80;   // Duration between drops
 int N_DROPS           = 2;
+int F_DECREMENT       = 50; // Factor to decrement successive drops (F_DECREMENT * Nth Drop); must be < D_VALVE_OPEN
 
 // [Flash]
-int D_BEFORE_FLASH    = 115;  // Delay before initial flash
-int D_BETWEEN_FLASH   = 30;   // Delay between flashes (if N_FLASHES > 1)
-int N_FLASHES         = 2;
+int D_BEFORE_FLASH    = 90;  // Delay before initial flash
+int D_BETWEEN_FLASH   = 150;   // Delay between flashes (if N_FLASHES > 1)
+int N_FLASHES         = 3;
 
 // [Other]
 int D_FORCE           = 10;   // Delay required by components (e.g. flash)
@@ -38,9 +39,9 @@ void setup() {
 
 void loop() {
   for(int runs = 0; runs < N_RUNS; runs++) {
-    if(runs > 0) delay(D_BETWEEN_RUN);
-    digitalWrite(CAMERA_PIN, HIGH);  //Switch Camera ON
+    if(runs > 0) delay(D_BETWEEN_RUN); 
     
+    digitalWrite(CAMERA_PIN, HIGH);  //Switch Camera ON   
     // Our camera requires some initial startup time, so this shouldn't be 0
     delay(D_BEFORE_DROP);
 
@@ -61,13 +62,14 @@ void loop() {
   
     for(int flashes = 0; flashes < N_FLASHES; flashes++) {
       // Ignore our delay the first time (D_BEFORE_FLASH does that)
-      if(flashes > 0) delay(D_BETWEEN_FLASH);
+      if(flashes > 0) delay(D_BETWEEN_FLASH + D_BETWEEN_FLASH * runs);
       
       digitalWrite(FLASH_PIN, HIGH);  //Switch Flash ON
       delay(D_FORCE);                  
       digitalWrite(FLASH_PIN, LOW);   //Switch Flash OFF
     }
-
     digitalWrite(CAMERA_PIN, LOW);  //Switch Camera OFF
   }
+
+  while(true) {}
 }
