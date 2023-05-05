@@ -1,7 +1,7 @@
 import cv2
 import serial
 
-files = ["media/Dance 1.mov", "media/Dance 2.mov", "media/Dance 3.mov"]
+files = ["media/Dance.mov", "media/Dance 2.mov", "media/Dance 3.mov"]
 def play_clips():
     video_index = 0
     cap = cv2.VideoCapture(files[video_index])
