@@ -1,5 +1,4 @@
 import cv2
-import numpy as np
 import serial
 
 files = ["media/Dance 1.mov", "media/Dance 2.mov", "media/Dance 3.mov"]
