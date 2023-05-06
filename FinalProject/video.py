@@ -2,17 +2,24 @@ import cv2
 import serial
 from collections import deque
 import statistics
-import cv2
 import multiprocessing as mp
 
 
+# constants
 NUM_SENSORS = 3
+NOISE_THRESHOLD = 100
+QUEUE_SIZE = 25
+WAIT_TIME = 100 
+FRAME_RATE = lambda x: max(1, int(WAIT_TIME / x))
+PORT = "/dev/cu.usbmodem11201"
+
+# globals
+arduino = serial.Serial(port=PORT)
 readings_queue = [deque([]) for _ in range(NUM_SENSORS)]
-files = ["media/radial1.mp4", "media/circular1"]
-setpoint = 450
-frametime = 100
+files = ["./media/radial1.mp4", "./media/circular1.mp4"]
 
 
+# plays video clips according to multiplier calculated by sensor reader
 def play_clips(files, mult):
     video_index = 0
     cap = cv2.VideoCapture(files[video_index])
@@ -25,17 +32,15 @@ def play_clips(files, mult):
             continue
         
         cv2.imshow('video', frame)
-        print(int(frametime / mult.value))
-        if cv2.waitKey(max(1, int(frametime / mult.value))) & 0xFF == ord('q'):
+        if cv2.waitKey(FRAME_RATE(mult.value)) & 0xFF == ord('q'):
             break
             
     cap.release()
     cv2.destroyAllWindows()
 
-
+# reads sensor values from arduino and calulates multiplier to pass to streamer
 def read_serial(q, mult):
     while True:
-        arduino = serial.Serial(port="/dev/cu.usbmodem11201")
         data = arduino.readline().decode().rstrip().split(",")
         if len(data) < NUM_SENSORS:
             continue
@@ -45,28 +50,28 @@ def read_serial(q, mult):
             srq = q[i]
             if len(srq) > 1:
                 change_to_running_avg[i] = statistics.median(srq) - data[i]
-            if len(srq) > 25:
+            if len(srq) > QUEUE_SIZE:
                 srq.popleft()
             srq.append(data[i])
-
+        
         total_avg_change = statistics.mean(change_to_running_avg)
-        if -100 < abs(total_avg_change) < 100:
+        if abs(total_avg_change) in range(-100, 100):
             continue
-
-        # larger multipler = faster video = increasing diff = total avg change > 0
         if total_avg_change < 0:
-            mult.value = max(1, mult.value - 1)
+            mult.value = max(1, mult.value - 5)
         else:
-            mult.value = min(180, mult.value + 1)
+            # larger multipler = faster video = inc diff, total avg change > 0
+            mult.value = min(100, mult.value + 1)
         
 
 if __name__ == "__main__":
-    mult = mp.Value('d', 1)
-    p1 = mp.Process(target = read_serial, args=[readings_queue, mult])
-    p2 = mp.Process(target = play_clips, args=[files, mult])
-    p1.start() 
-    p2.start()
 
-    p1.join()
-    p2.join()
-    pass
+    mult = mp.Value('d', 1)
+    sensor_reader = mp.Process(target = read_serial, args=[readings_queue, mult])
+    video_streamer = mp.Process(target = play_clips, args=[files, mult])
+
+    sensor_reader.start() 
+    video_streamer.start()
+
+    sensor_reader.join()
+    video_streamer.join()
