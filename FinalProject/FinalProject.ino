@@ -2,7 +2,7 @@
 
 // Echo, Trig
 const int DISTANCE_PINS[] = { 6, 7, 8, 9, 10, 11, 12, 13 };
-const int NUM_SENSORS = 2;
+const int NUM_SENSORS = 3;
 
 void setup() {
   // initialize serial communication:
@@ -23,11 +23,12 @@ void loop() {
     digitalWrite(DISTANCE_PINS[2 * i + 1], LOW);
     duration = pulseIn(DISTANCE_PINS[2 * i], HIGH);
     cm = microsecondsToCentimeters(duration);
-
-    Serial.print(i);
-    Serial.print(" ");
-    Serial.println(cm);
+    Serial.print(cm);
+    if (i < NUM_SENSORS - 1) {
+      Serial.print(",");
+    }
   }
+  Serial.println();
   
   delay(100);
 }
